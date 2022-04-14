@@ -31,6 +31,7 @@ const hostConfig: HostConfig<
   hideInstance (instance: TaroElement): void
   unhideInstance (instance: TaroElement, props): void
   getCurrentEventPriority(): number
+  detachDeletedInstance(): void
 } = {
   createInstance (type) {
     return document.createElement(type)
@@ -55,6 +56,10 @@ const hostConfig: HostConfig<
   getCurrentEventPriority () {
     // 因 @types/react-reconciler 未更新，ts会报错，这里直接返回16
     return 16 // import { DefaultEventPriority } from 'react-reconciler/constants'
+  },
+
+  detachDeletedInstance () {
+    // noop
   },
 
   appendChild (parent, child) {
