@@ -23,6 +23,7 @@ import type {
 } from '@tarojs/runtime'
 
 type PageComponent = React.CElement<PageProps, React.Component<PageProps, any, any>>
+declare const __TARO_FRAMEWORK_REACT_MODE__: string
 
 let h: typeof React.createElement
 let ReactDOM
@@ -69,7 +70,7 @@ export function setReconciler (ReactDOM) {
       const isReactComponent = isClassComponent(R, el)
 
       return R.forwardRef((props, ref) => {
-        const newProps: React.Props<any> = { ...props }
+        const newProps: React.ComponentProps<any> = { ...props }
         const refs = isReactComponent ? { ref: ref } : {
           forwardedRef: ref,
           // 兼容 react-redux 7.20.1+
@@ -188,6 +189,7 @@ export function createReactApp (
   }
 
   function renderReactRoot () {
+    const reactMode = __TARO_FRAMEWORK_REACT_MODE__
     let appId = 'app'
     if (process.env.TARO_ENV === 'h5') {
       appId = config?.appId || appId
@@ -196,7 +198,7 @@ export function createReactApp (
     }
     const container = document.getElementById(appId)
     const version = Number((ReactDOM.version || '').split('.')[0])
-    if (version >= 18) {
+    if (version >= 18 && reactMode === 'concurrent') {
       const root = ReactDOM.createRoot(container)
       root.render?.(h(AppWrapper))
     } else {
@@ -237,7 +239,7 @@ export function createReactApp (
         elements.push(page())
       }
 
-      let props: React.Props<any> | null = null
+      let props: React.ComponentProps<any> | null = null
 
       if (isReactComponent) {
         props = { ref: appInstanceRef }

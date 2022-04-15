@@ -377,6 +377,7 @@ export interface IProjectBaseConfig {
   presets?: PluginItem[]
   baseLevel?: number
   framework?: string
+  reactMode?: 'legacy' | 'concurrent'
 }
 
 export interface IProjectConfig extends IProjectBaseConfig {
