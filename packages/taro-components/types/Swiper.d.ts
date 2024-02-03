@@ -33,6 +33,8 @@ interface SwiperProps extends StandardProps {
 
   /** 当前所在滑块的 item-id ，不能与 current 被同时指定
    * @default ""
+   * @supported swan, tt, qq, jd
+   * @weapp deprecated
    */
   currentItemId?: string
 
@@ -102,6 +104,18 @@ interface SwiperProps extends StandardProps {
    * @supported alipay
    */
   disableTouch?: boolean
+
+  /** 是否启用缩放
+   * @default false
+   * @supported h5
+   */
+  zoom?: boolean
+
+  /** 是否开启全屏
+   * @default false
+   * @supported h5
+   */
+  full?: boolean
 
   /** swiper-item 可见时的 class。
    * @supported alipay
@@ -235,7 +249,7 @@ declare namespace SwiperProps {
 /** 滑块视图容器。其中只可放置 swiper-item 组件，否则会导致未定义的行为。
  * > 不要为 `SwiperItem` 设置 **style** 属性，可以通过 class 设置样式。[7147](https://github.com/NervJS/taro/issues/7147)
  * @classification viewContainer
- * @supported weapp, swan, alipay, tt, h5, rn
+ * @supported weapp, alipay, swan, tt, qq, jd, h5, rn, harmony, harmony_hybrid
  * @example_react
  * ```tsx
  * class App extends Component {
