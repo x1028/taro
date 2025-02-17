@@ -44,7 +44,7 @@ export class TaroEventTarget {
     // 因此每次绑定事件都新建一个函数，如果带来了性能问题，可以把这段逻辑抽取到 PReact 插件中。
     const oldHandler = handler
     handler = function () {
-      oldHandler.apply(this, arguments) // this 指向 Element
+      return oldHandler.apply(this, arguments) // this 指向 Element
     }
     ;(handler as any).oldHandler = oldHandler
 
@@ -88,5 +88,11 @@ export class TaroEventTarget {
     const handlers = this.__handlers
     const isAnyEventBinded = Object.keys(handlers).find(key => handlers[key].length)
     return Boolean(isAnyEventBinded)
+  }
+
+  public isOnlyClickBinded (): boolean {
+    const handlers = this.__handlers
+    const isOnlyClickBinded = handlers.tap && Object.keys(handlers).length === 1
+    return Boolean(isOnlyClickBinded)
   }
 }

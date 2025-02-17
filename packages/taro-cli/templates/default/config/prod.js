@@ -1,11 +1,21 @@
-module.exports = {
-  env: {
-    NODE_ENV: '"production"'
-  },
-  defineConstants: {
-  },
+{{#if typescript }}import type { UserConfigExport } from "@tarojs/cli"{{/if}}
+
+export default {
   mini: {},
   h5: {
+    {{#if buildEs5 }}
+      {{#if (eq compiler 'Vite')}}
+    // 确保产物为 es5
+    legacy: true,
+      {{else if (eq compiler 'Webpack5')}}
+    compile: {
+      include: [
+        // 确保产物为 es5
+        filename => /node_modules\/(?!(@babel|core-js|style-loader|css-loader|react|react-dom))/.test(filename)
+      ]
+    },
+      {{/if}}
+    {{/if}}
     /**
      * WebpackChain 插件配置
      * @docs https://github.com/neutrinojs/webpack-chain
@@ -17,7 +27,6 @@ module.exports = {
     //    */
     //   chain.plugin('analyzer')
     //     .use(require('webpack-bundle-analyzer').BundleAnalyzerPlugin, [])
-
     //   /**
     //    * 如果 h5 端首屏加载时间过长，可以使用 prerender-spa-plugin 插件预加载首页。
     //    * @docs https://github.com/chrisvfritz/prerender-spa-plugin
@@ -34,4 +43,4 @@ module.exports = {
     //     }))
     // }
   }
-}
+}{{#if typescript }} satisfies UserConfigExport<'{{ to_lower_case compiler }}'>{{/if}}

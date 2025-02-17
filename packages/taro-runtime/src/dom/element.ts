@@ -4,6 +4,8 @@ import {
   CATCH_VIEW,
   CATCHMOVE,
   CLASS,
+  CLICK_VIEW,
+  EVENT_CALLBACK_RESULT,
   FOCUS,
   ID,
   PROPERTY_THRESHOLD,
@@ -21,10 +23,11 @@ import { NodeType } from './node_types'
 import { Style } from './style'
 import { treeToArray } from './tree'
 
-import type { Attributes, Func } from '../interface'
+import type { Attributes, TFunc } from '../interface'
 import type { TaroEvent } from './event'
 
 export class TaroElement extends TaroNode {
+  public ctx?
   public tagName: string
   public props: Record<string, any> = {}
   public style: Style
@@ -179,6 +182,7 @@ export class TaroElement extends TaroNode {
     const componentsAlias = getComponentsAlias()
     const _alias = componentsAlias[this.nodeName]
     const viewAlias = componentsAlias[VIEW]._num
+    const clickViewAlias = componentsAlias[CLICK_VIEW]._num
     const staticViewAlias = componentsAlias[STATIC_VIEW]._num
     const catchViewAlias = componentsAlias[CATCH_VIEW]._num
     const _path = this._path
@@ -203,11 +207,11 @@ export class TaroElement extends TaroNode {
     if (this.nodeName === VIEW) {
       if (qualifiedNameInCamelCase === CATCHMOVE) {
         // catchMove = true: catch-view
-        // catchMove = false: view or static-view
+        // catchMove = false: view or click-view or static-view
         this.enqueueUpdate({
           path: `${_path}.${Shortcuts.NodeName}`,
           value: value ? catchViewAlias : (
-            this.isAnyEventBinded() ? viewAlias : staticViewAlias
+            this.isOnlyClickBinded() && !isHasExtractProp(this) ? clickViewAlias : (this.isAnyEventBinded() ? viewAlias : staticViewAlias)
           )
         })
       } else if (isPureView && isHasExtractProp(this)) {
@@ -252,6 +256,7 @@ export class TaroElement extends TaroNode {
     const viewAlias = componentsAlias[VIEW]._num
     const staticViewAlias = componentsAlias[STATIC_VIEW]._num
     const pureViewAlias = componentsAlias[PURE_VIEW]._num
+    const clickViewAlias = componentsAlias[CLICK_VIEW]._num
     const _path = this._path
 
     qualifiedName = shortcutAttr(qualifiedName)
@@ -273,10 +278,10 @@ export class TaroElement extends TaroNode {
 
     if (this.nodeName === VIEW) {
       if (qualifiedNameInCamelCase === CATCHMOVE) {
-        // catch-view => view or static-view or pure-view
+        // catch-view => view or click-view or static-view or pure-view
         this.enqueueUpdate({
           path: `${_path}.${Shortcuts.NodeName}`,
-          value: this.isAnyEventBinded() ? viewAlias : (isHasExtractProp(this) ? staticViewAlias : pureViewAlias)
+          value: this.isOnlyClickBinded() && !isHasExtractProp(this) ? clickViewAlias : (this.isAnyEventBinded() ? viewAlias : (isHasExtractProp(this) ? staticViewAlias : pureViewAlias))
         })
       } else if (isStaticView && !isHasExtractProp(this)) {
         // static-view => pure-view
@@ -300,10 +305,11 @@ export class TaroElement extends TaroNode {
   }
 
   public getElementsByClassName (className: string): TaroElement[] {
+    const classNames = className.trim().split(/\s+/)
+
     return treeToArray(this, (el) => {
       const classList = el.classList
-      const classNames = className.trim().split(/\s+/)
-      return classNames.every(c => classList.has(c))
+      return classNames.every(c => classList.contains(c))
     })
   }
 
@@ -329,6 +335,11 @@ export class TaroElement extends TaroNode {
         event.defaultPrevented = true
       }
 
+      if (!isUndefined(result) && event.mpEvent) {
+        const res = hooks.call('modifyTaroEventReturn', this, event, result)
+        if (res) { event.mpEvent[EVENT_CALLBACK_RESULT] = result }
+      }
+
       if (event._end && event._stop) {
         break
       }
@@ -336,8 +347,6 @@ export class TaroElement extends TaroNode {
 
     if (event._stop) {
       this._stopPropagation(event)
-    } else {
-      event._stop = true
     }
 
     return listeners != null
@@ -352,6 +361,8 @@ export class TaroElement extends TaroNode {
       sideEffect = false
       delete options.sideEffect
     }
+
+    hooks.call('modifyAddEventListener', this, sideEffect, getComponentsAlias)
 
     if (sideEffect !== false && !this.isAnyEventBinded() && SPECIAL_NODES.indexOf(name) > -1) {
       const componentsAlias = getComponentsAlias()
@@ -371,6 +382,8 @@ export class TaroElement extends TaroNode {
     const name = this.nodeName
     const SPECIAL_NODES = hooks.call('getSpecialNodes')!
 
+    hooks.call('modifyRemoveEventListener', this, sideEffect, getComponentsAlias)
+
     if (sideEffect !== false && !this.isAnyEventBinded() && SPECIAL_NODES.indexOf(name) > -1) {
       const componentsAlias = getComponentsAlias()
       const value = isHasExtractProp(this) ? `static-${name}` : `pure-${name}`
@@ -382,7 +395,7 @@ export class TaroElement extends TaroNode {
     }
   }
 
-  static extend (methodName: string, options: Func | Record<string, any>) {
+  static extend (methodName: string, options: TFunc | Record<string, any>) {
     extend(TaroElement, methodName, options)
   }
 }

@@ -1,6 +1,8 @@
 import { isUrlRequest, urlToRequest } from 'loader-utils'
 import sax from 'sax'
 
+import { isSpecialFormat } from '../utils/index'
+
 export default function miniTemplateLoader (source) {
   this.cacheable && this.cacheable()
   /**
@@ -16,20 +18,13 @@ export default function miniTemplateLoader (source) {
   const parser = sax.parser(false, { lowercase: true })
   const requests: Set<string> = new Set()
   const callback = this.async()
-  const loadModule = request =>
-    new Promise((resolve, reject) => {
-      this.addDependency(request)
-      this.loadModule(request, (err, src) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(src)
-        }
-      })
-    })
+  const loadModule = request => this.importModule(request)
 
   parser.onattribute = ({ name, value }) => {
-    if (value && name === 'src' && isUrlRequest(value)) {
+    if (value && (name === 'src' || name === 'from') && isUrlRequest(value)) {
+      // image、webview等组件的src属性不需要加入依赖
+      if (isSpecialFormat(name, value)) return
+
       const request = urlToRequest(value)
       requests.add(request)
     }

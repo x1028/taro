@@ -1,4 +1,5 @@
 import { internalComponents } from './components'
+import { PLATFORM_CONFIG_MAP, PLATFORM_TYPE } from './constants'
 import { hooks } from './runtime-hooks'
 
 export const EMPTY_OBJ: any = {}
@@ -166,12 +167,13 @@ export function getComponentsAlias (origin: typeof internalComponents) {
     StaticImage: origin.Image,
     StaticText: origin.Text,
     PureView: viewAttrs,
-    CatchView: viewAttrs
+    CatchView: viewAttrs,
+    ClickView: viewAttrs,
   }
   origin = { ...origin, ...extraList }
   Object.keys(origin)
     .sort((a, b) => {
-      const reg = /^(Static|Pure|Catch)*(View|Image|Text)$/
+      const reg = /^(Static|Pure|Catch|Click)*(View|Image|Text)$/
       const isACommonly = reg.test(a)
       const isBCommonly = reg.test(b)
       if (isACommonly && isBCommonly) {
@@ -198,6 +200,14 @@ export function getComponentsAlias (origin: typeof internalComponents) {
     })
 
   return mapping
+}
+
+export function getPlatformType (platform = 'weapp', configNameOrType: string = PLATFORM_TYPE.MINI): PLATFORM_TYPE {
+  if (Object.keys(PLATFORM_CONFIG_MAP).includes(platform)) {
+    configNameOrType = platform
+  }
+  const param = PLATFORM_CONFIG_MAP[configNameOrType] || {}
+  return param.type || configNameOrType
 }
 
 export function mergeReconciler (hostConfig, hooksForTest?) {

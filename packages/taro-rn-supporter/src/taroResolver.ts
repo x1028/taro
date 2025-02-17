@@ -1,10 +1,10 @@
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 
-import { emptyModulePath } from './defaults'
+import { entryFilePath } from './defaults'
 import { resolveExtFile, resolvePathFromAlias } from './utils'
 
-import type { ResolutionContext } from 'metro-resolver'
+import type { CustomResolutionContext } from 'metro-resolver'
 
 interface VersionInfo {
   major: number
@@ -64,28 +64,30 @@ function searchReactNativeModule (moduleName: string, platform: string): string 
  * resolveRequest 文件处理，alias，文件后缀加载等
  * metro 0.70 type ResolveRequestFunc = (context, moduleName, platform) => any
  */
-function handleFile (context: ResolutionContext, moduleName, platform) {
+function handleFile (context: CustomResolutionContext, moduleName, platform, config, resolveRequest?) {
   // 处理 alias
-  moduleName = resolvePathFromAlias(moduleName)
+  moduleName = resolvePathFromAlias(moduleName, config)
 
   // 处理后缀 .rn.ts
-  moduleName = resolveExtFile(context, moduleName, platform)
-  return context.resolveRequest(context, moduleName, platform)
+  moduleName = resolveExtFile(context, moduleName, platform, config)
+  return (resolveRequest || context.resolveRequest)(context, moduleName, platform)
 }
 
 // rn runner调用
-function handleTaroFile (context: ResolutionContext, moduleName, platform) {
-  if (moduleName === './index') {
-    return {
-      filePath: moduleName,
-      type: 'empty'
-    }
+function handleTaroFile (context: CustomResolutionContext, moduleName, platform, config, resolveRequest?) {
+  const newContext = { ...context }
+  if (context.originModulePath === require.resolve(entryFilePath)) {
+    // node_modules/@tarojs/rn-supporter/entry-file.js
+    // index.js
+    newContext.originModulePath = path.resolve(path.join(
+      entryFilePath,
+      '..',
+      '..',
+      '..',
+      './index.js'
+    ))
   }
-  const newContext = {...context}
-  if(context.originModulePath === require.resolve(emptyModulePath)) {
-    newContext.originModulePath = path.join(context.projectRoot, './index.js')
-  }
-  return handleFile(newContext, moduleName, platform)
+  return handleFile(newContext, moduleName, platform, config, resolveRequest)
 }
 
 export {

@@ -1,4 +1,4 @@
-import { isFunction, isUndefined, Shortcuts } from '@tarojs/shared'
+import { hooks, isArray, isFunction, isUndefined, Shortcuts } from '@tarojs/shared'
 
 import {
   CUSTOM_WRAPPER,
@@ -8,10 +8,10 @@ import {
 } from '../constants'
 import { options } from '../options'
 import { perf } from '../perf'
-import { customWrapperCache } from '../utils'
+import { customWrapperCache, isComment } from '../utils'
 import { TaroElement } from './element'
 
-import type { Func, HydratedData, MpInstance, UpdatePayload, UpdatePayloadValue } from '../interface'
+import type { HydratedData, MpInstance, TFunc, UpdatePayload, UpdatePayloadValue } from '../interface'
 
 function findCustomWrapper (root: TaroRootElement, dataPathArr: string[]) {
   // ['root', 'cn', '[0]'] remove 'root' => ['cn', '[0]']
@@ -28,6 +28,10 @@ function findCustomWrapper (root: TaroRootElement, dataPathArr: string[]) {
       .replace(/\bcn\b/g, 'childNodes')
 
     currentData = currentData[key]
+
+    if (isArray(currentData)) {
+      currentData = currentData.filter(el => !isComment(el))
+    }
 
     if (isUndefined(currentData)) return true
 
@@ -51,7 +55,7 @@ function findCustomWrapper (root: TaroRootElement, dataPathArr: string[]) {
 export class TaroRootElement extends TaroElement {
   private updatePayloads: UpdatePayload[] = []
 
-  private updateCallbacks: Func[] = []
+  private updateCallbacks: TFunc[] = []
 
   public pendingUpdate = false
 
@@ -71,6 +75,11 @@ export class TaroRootElement extends TaroElement {
     return this
   }
 
+  public scheduleTask(fn: TFunc) {
+    // 这里若使用微任务可略微提前setData的执行时机，但在部分场景下可能会出现连续setData两次，造成更大的性能问题
+    setTimeout(fn)
+  }
+
   public enqueueUpdate (payload: UpdatePayload): void {
     this.updatePayloads.push(payload)
 
@@ -79,12 +88,12 @@ export class TaroRootElement extends TaroElement {
     }
   }
 
-  public performUpdate (initRender = false, prerender?: Func) {
+  public performUpdate (initRender = false, prerender?: TFunc) {
     this.pendingUpdate = true
 
-    const ctx = this.ctx!
+    const ctx = hooks.call('proxyToRaw', this.ctx)!
 
-    setTimeout(() => {
+    this.scheduleTask(() => {
       const setDataMark = `${SET_DATA} 开始时间戳 ${Date.now()}`
       perf.start(setDataMark)
       const data: Record<string, UpdatePayloadValue | ReturnType<HydratedData>> = Object.create(null)
@@ -147,9 +156,9 @@ export class TaroRootElement extends TaroElement {
         }
       }
 
-      const customWrpperCount = customWrapperMap.size
+      const customWrapperCount = customWrapperMap.size
       const isNeedNormalUpdate = Object.keys(normalUpdate).length > 0
-      const updateArrLen = customWrpperCount + (isNeedNormalUpdate ? 1 : 0)
+      const updateArrLen = customWrapperCount + (isNeedNormalUpdate ? 1 : 0)
       let executeTime = 0
 
       const cb = () => {
@@ -161,7 +170,7 @@ export class TaroRootElement extends TaroElement {
       }
 
       // custom-wrapper setData
-      if (customWrpperCount) {
+      if (customWrapperCount) {
         customWrapperMap.forEach((data, ctx) => {
           if (process.env.NODE_ENV !== 'production' && options.debug) {
             // eslint-disable-next-line no-console
@@ -179,10 +188,10 @@ export class TaroRootElement extends TaroElement {
         }
         ctx.setData(normalUpdate, cb)
       }
-    }, 0)
+    })
   }
 
-  public enqueueUpdateCallback (cb: Func, ctx?: Record<string, any>) {
+  public enqueueUpdateCallback (cb: TFunc, ctx?: Record<string, any>) {
     this.updateCallbacks.push(() => {
       ctx ? cb.call(ctx) : cb()
     })

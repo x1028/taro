@@ -62,7 +62,8 @@ declare module '../../index' {
       /** 实际设置的缩放级别。由于系统限制，某些机型可能无法设置成指定值，会改用最接近的可设值。 */
       zoom: number
       /**
-       * @supported alipay on android
+       * @supported alipay
+       * @alipay on android
        */
       setZoom:number
     }
@@ -86,19 +87,19 @@ declare module '../../index' {
       /** 视频的文件的临时路径 */
       tempVideoPath: string
       /** 视频文件的高度。
-       * @supported alipay 
+       * @supported alipay
        */
       height: string
-       /** 视频文件的宽度。
-       * @supported alipay 
+      /** 视频文件的宽度。
+       * @supported alipay
        */
       width: string
-       /** 视频文件的尺寸。
-       * @supported alipay 
+      /** 视频文件的尺寸。
+       * @supported alipay
        */
       size: string
-       /** 录制的持续时间。
-       * @supported alipay 
+      /** 录制的持续时间。
+       * @supported alipay
        */
       duration: string
     }
@@ -151,6 +152,8 @@ declare module '../../index' {
       normal
       /** 低质量 */
       low
+      /** 原图 */
+      original
     }
   }
 
@@ -191,6 +194,7 @@ declare module '../../index' {
 
   interface TaroStatic {
     /** 创建 camera 上下文 CameraContext 对象。
+     * @alipay 支付宝小程序需指定 camera 组件中的 id 属性
      * @supported weapp, rn, tt, alipay
      * @example
      * ```tsx
@@ -198,7 +202,6 @@ declare module '../../index' {
      * ```
      * @see https://developers.weixin.qq.com/miniprogram/dev/api/media/camera/wx.createCameraContext.html
      */
-    createCameraContext(): CameraContext
-    createCameraContext(id: string): CameraContext
+    createCameraContext(id?: string): CameraContext
   }
 }

@@ -8,7 +8,9 @@ import {
   WebView,
   WebViewMessageEvent
 } from 'react-native-webview'
-import { RichTextProps, RichTextState, Node } from './PropsType'
+
+import { omit } from '../../utils'
+import { Node, RichTextProps, RichTextState } from './PropsType'
 
 class _RichText extends React.Component<RichTextProps, RichTextState> {
   static defaultProps = {
@@ -50,6 +52,8 @@ class _RichText extends React.Component<RichTextProps, RichTextState> {
       nodes
     } = this.props
 
+    const otherProps = omit(this.props, ['style', 'nodes'])
+
     const html: string = typeof nodes === 'string'
       ? nodes
       : nodes.map((item: Node): string => {
@@ -78,6 +82,7 @@ class _RichText extends React.Component<RichTextProps, RichTextState> {
           style={{
             backgroundColor: 'transparent'
           }}
+          {...otherProps}
         />
       </View>
     )
